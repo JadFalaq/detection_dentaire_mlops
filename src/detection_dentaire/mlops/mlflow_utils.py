@@ -3,10 +3,21 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import mlflow
+
+def _mlflow():
+    """Import mlflow lazily so the module can be imported without mlflow installed."""
+    try:
+        import mlflow as _mlflow_module
+        return _mlflow_module
+    except ImportError as exc:
+        raise ImportError(
+            "mlflow is required for experiment tracking. "
+            "Install it with: pip install mlflow"
+        ) from exc
 
 
 def setup_mlflow(mlflow_cfg: dict[str, Any]) -> None:
+    mlflow = _mlflow()
     cfg = mlflow_cfg["mlflow"]
     mlflow.set_tracking_uri(cfg["tracking_uri"])
     mlflow.set_experiment(cfg["experiment_name"])
@@ -18,11 +29,13 @@ def start_run_with_configs(
     train_cfg: dict[str, Any],
     mlflow_cfg: dict[str, Any],
 ):
+    mlflow = _mlflow()
     setup_mlflow(mlflow_cfg)
     return mlflow.start_run(run_name=run_name)
 
 
 def log_config_artifacts(config_paths: list[str | Path]) -> None:
+    mlflow = _mlflow()
     for path in config_paths:
         path = Path(path)
         if path.exists():
@@ -39,10 +52,10 @@ def _flatten(prefix: str, obj: dict[str, Any], out: dict[str, Any]) -> None:
 
 
 def log_dict_as_params(prefix: str, data: dict[str, Any]) -> None:
+    mlflow = _mlflow()
     flat: dict[str, Any] = {}
     _flatten(prefix, data, flat)
 
-    # MLflow params doivent être simples
     for k, v in flat.items():
         if isinstance(v, (list, tuple)):
             mlflow.log_param(k, str(v))
@@ -51,12 +64,10 @@ def log_dict_as_params(prefix: str, data: dict[str, Any]) -> None:
 
 
 def log_training_summary(results, run_dir: str | Path) -> None:
-    """
-    Log minimal des artefacts et métriques après entraînement YOLO.
-    """
+    """Log minimal des artéfacts et métriques après entraînement YOLO."""
+    mlflow = _mlflow()
     run_dir = Path(run_dir)
 
-    # Artefacts classiques produits par Ultralytics
     candidates = [
         run_dir / "results.csv",
         run_dir / "args.yaml",
@@ -74,16 +85,10 @@ def log_training_summary(results, run_dir: str | Path) -> None:
         if path.exists():
             mlflow.log_artifact(str(path))
 
-    # Si results.csv existe, il suffit souvent côté rapport.
-    # Les métriques finales détaillées pourront être loggées plus tard via evaluate.py.
-
-
-
 
 def log_metrics_dict(metrics: dict[str, float], prefix: str | None = None) -> None:
-    """
-    Log un dictionnaire de métriques dans MLflow.
-    """
+    """Log un dictionnaire de métriques dans MLflow."""
+    mlflow = _mlflow()
     for key, value in metrics.items():
         metric_name = f"{prefix}.{key}" if prefix else key
         try:

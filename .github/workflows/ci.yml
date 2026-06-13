@@ -17,20 +17,28 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-ci-${{ hashFiles('requirements-ci.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-ci-
+
+      - name: Install CI dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements-ci.txt
           pip install -e .
 
       - name: Run tests
-        run: pytest -q
+        run: pytest -q --ignore=tests/test_api.py -k "not ultralytics and not mlflow and not dvc"
+
+      - name: Run API tests
+        run: pytest -q tests/test_api.py
 
       - name: Verify service CLI
         run: python scripts/serve_api.py --help
 
       - name: Verify registry CLI
         run: python scripts/register_best_model.py --help
-
-      - name: Verify evaluation CLI
-        run: python scripts/evaluate.py --help

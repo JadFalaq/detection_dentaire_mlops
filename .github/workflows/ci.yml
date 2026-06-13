@@ -5,6 +5,9 @@ on:
     branches: ["main", "master", "develop"]
   pull_request:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -31,11 +34,16 @@ jobs:
           pip install -r requirements-ci.txt
           pip install -e .
 
-      - name: Run tests
-        run: pytest -q --ignore=tests/test_api.py -k "not ultralytics and not mlflow and not dvc"
-
-      - name: Run API tests
-        run: pytest -q tests/test_api.py
+      - name: Run unit tests
+        run: |
+          pytest -q \
+            tests/test_config.py \
+            tests/test_paths.py \
+            tests/test_remap.py \
+            tests/test_label_parser.py \
+            tests/test_registry_utils.py \
+            tests/test_api.py \
+            -v
 
       - name: Verify service CLI
         run: python scripts/serve_api.py --help

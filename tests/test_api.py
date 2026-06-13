@@ -25,7 +25,15 @@ def test_health_endpoint(monkeypatch):
 
 
 def test_predict_endpoint(monkeypatch):
-    def fake_predict_uploaded_file(self, upload):
+    def fake_predict_uploaded_file(
+        self,
+        upload,
+        *,
+        image_size=None,
+        conf_threshold=None,
+        iou_threshold=None,
+        max_det=None,
+    ):
         return {
             "model_name": "champion",
             "checkpoint_path": "models/checkpoints/champion/weights/best.pt",

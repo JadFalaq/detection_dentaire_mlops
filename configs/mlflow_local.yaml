@@ -1,0 +1,6 @@
+mlflow:
+  tracking_uri: sqlite:///mlflow.db
+  experiment_name: dental_detection_7classes
+  registered_model_name: dental_anomaly_detector
+  log_models: true
+  log_artifacts: true

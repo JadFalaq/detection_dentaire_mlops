@@ -1,0 +1,16 @@
+evaluation:
+  checkpoint: models/checkpoints/champion/weights/best.pt
+  image_size: 640
+  conf_threshold: 0.25
+  iou_threshold: 0.50
+  max_det: 300
+  device: 0
+
+splits:
+  eval: true
+  test: true
+  external: true
+
+outputs:
+  metrics_json: reports/summaries/eval_metrics.json
+  predictions_dir: reports/predictions

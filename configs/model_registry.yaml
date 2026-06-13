@@ -1,0 +1,21 @@
+registry:
+  project_model_name: dental_anomaly_detector
+  selection_policy: best_global_compromise
+champion:
+  name: yolov8s_7classes_baseline
+  role: Champion
+  checkpoint: models\checkpoints\champion\weights\best.pt
+  rationale: meilleur compromis global sur eval et test, avec de bonnes performances
+    sur external
+  source_checkpoint: models\checkpoints\yolov8s_7classes_baseline\weights\best.pt
+  source_run_id: 03fa528c53334cfd869c0c20e5c8b063
+candidate:
+  name: yolov8s_7classes_ext_generalization_v1
+  role: Candidate
+  checkpoint: models\checkpoints\yolov8s_7classes_ext_generalization_v1\weights\best.pt
+  rationale: meilleur sur external, mais moins bon en compromis global
+  source_run_id: dba1757ba0ea427981e60223283a5d2c
+archived:
+- name: yolov8s_7classes_v2_small_lesions
+  role: Archived
+  checkpoint: models/checkpoints/yolov8s_7classes_v2_small_lesions/weights/best.pt

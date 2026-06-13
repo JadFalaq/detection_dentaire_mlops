@@ -1,0 +1,64 @@
+project:
+  name: detection_dentaire_mlops
+  seed: 42
+
+data:
+  raw_dir: data/raw/dataset_original
+  processed_dir: data/processed/dataset_7classes
+  train_split: train
+  eval_split: eval
+  test_split: test
+  external_split: test_alte_cabinete/Ext-validation
+  num_classes: 7
+
+classes:
+  names:
+    - CARIES
+    - PERIAPICAL_PATHOLOGY
+    - PERIODONTAL_BONE
+    - IMPACTED_TOOTH
+    - ROOT_PATHOLOGY
+    - TREATED_TOOTH
+    - DEVICE_IMPLANT
+
+remap:
+  old_to_new:
+    0: 6
+    1: 5
+    2: 5
+    3: 5
+    4: 0
+    5: 2
+    6: 3
+    7: 1
+    8: 4
+    9: 2
+    10: 5
+    11: 4
+    12: 6
+    13: 6
+
+training:
+  model_name: yolov8s
+  image_size: 1024
+  batch_size: 8
+  epochs: 100
+  learning_rate: 0.001
+  optimizer: adamw
+
+evaluation:
+  conf_threshold: 0.25
+  iou_threshold: 0.50
+
+mlflow:
+  experiment_name: dental_detection_7classes
+  tracking_uri: http://127.0.0.1:5000
+  registered_model_name: dental_anomaly_detector
+
+paths:
+  best_model: models/checkpoints/best.pt
+  last_model: models/checkpoints/last.pt
+  predictions_dir: reports/predictions
+  figures_dir: reports/figures
+  tables_dir: reports/tables
+  summaries_dir: reports/summaries

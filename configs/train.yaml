@@ -1,0 +1,37 @@
+experiment:
+  name: yolov8s_7classes_v2_small_lesions
+
+model:
+  type: yolov8
+  variant: yolov8s.pt
+
+training:
+  image_size: 832
+  epochs: 10
+  batch_size: 2
+  device: 0
+  workers: 0
+  optimizer: AdamW
+  lr0: 0.0005
+  patience: 35
+  pretrained: true
+  cache: false
+  verbose: true
+
+augmentation:
+  hsv_h: 0.0
+  hsv_s: 0.0
+  hsv_v: 0.08
+  degrees: 2.0
+  translate: 0.02
+  scale: 0.10
+  shear: 0.0
+  perspective: 0.0
+  flipud: 0.0
+  fliplr: 0.5
+  mosaic: 0.10
+  mixup: 0.0
+
+outputs:
+  project_dir: models/checkpoints
+  run_name: yolov8s_7classes_v2_small_lesions

@@ -1,0 +1,25 @@
+stages:
+  inspect:
+    cmd: python scripts/inspect_dataset.py --root data/raw/dataset_original --check-images --save-json reports/summaries/inspect_report.json
+    deps:
+      - scripts/inspect_dataset.py
+      - data/raw/dataset_original
+    outs:
+      - reports/summaries/inspect_report.json
+
+  prepare:
+    cmd: python scripts/prepare_dataset_7classes.py --src-root data/raw/dataset_original --dst-root data/processed/dataset_7classes --copy-images
+    deps:
+      - scripts/prepare_dataset_7classes.py
+      - data/raw/dataset_original
+    outs:
+      - data/processed/dataset_7classes
+
+  stats:
+    cmd: python scripts/class_stats.py --root data/processed/dataset_7classes --save-csv reports/tables/class_stats.csv --save-json reports/summaries/class_stats.json
+    deps:
+      - scripts/class_stats.py
+      - data/processed/dataset_7classes
+    outs:
+      - reports/tables/class_stats.csv
+      - reports/summaries/class_stats.json

@@ -1,0 +1,63 @@
+schema: '2.0'
+stages:
+  inspect:
+    cmd: python scripts/inspect_dataset.py --root data/raw/dataset_original 
+      --check-images --save-json reports/summaries/inspect_report.json
+    deps:
+    - path: data/raw/dataset_original
+      hash: md5
+      md5: aa87595ff6527bd5ae327adb4fcf1d43.dir
+      size: 1420922476
+      nfiles: 3617
+    - path: scripts/inspect_dataset.py
+      hash: md5
+      md5: c0b32f802e6caae14e73e1d2c5dbc28b
+      size: 11082
+    outs:
+    - path: reports/summaries/inspect_report.json
+      hash: md5
+      md5: 4ade2b24f39aea3c4091d4ab48672801
+      size: 12026
+  prepare:
+    cmd: python scripts/prepare_dataset_7classes.py --src-root 
+      data/raw/dataset_original --dst-root data/processed/dataset_7classes 
+      --copy-images
+    deps:
+    - path: data/raw/dataset_original
+      hash: md5
+      md5: aa87595ff6527bd5ae327adb4fcf1d43.dir
+      size: 1420922476
+      nfiles: 3617
+    - path: scripts/prepare_dataset_7classes.py
+      hash: md5
+      md5: a44cdc686c2ef255b46929b17cf8988c
+      size: 10061
+    outs:
+    - path: data/processed/dataset_7classes
+      hash: md5
+      md5: c232128527e79f174cbf3a53a789388c.dir
+      size: 1420898568
+      nfiles: 3620
+  stats:
+    cmd: python scripts/class_stats.py --root data/processed/dataset_7classes 
+      --save-csv reports/tables/class_stats.csv --save-json 
+      reports/summaries/class_stats.json
+    deps:
+    - path: data/processed/dataset_7classes
+      hash: md5
+      md5: c232128527e79f174cbf3a53a789388c.dir
+      size: 1420898568
+      nfiles: 3620
+    - path: scripts/class_stats.py
+      hash: md5
+      md5: 73b9fef1a536871dc9a14ede296e1268
+      size: 5730
+    outs:
+    - path: reports/summaries/class_stats.json
+      hash: md5
+      md5: 0954da5204000a5dcbfa639915077922
+      size: 3972
+    - path: reports/tables/class_stats.csv
+      hash: md5
+      md5: 3037debbb4d622a445edfde62ea2c839
+      size: 870

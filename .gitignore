@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editors / IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# MLflow local runs
+mlruns/
+
+# Python test / cache
+.pytest_cache/
+.mypy_cache/
+
+# Temporary outputs
+tmp/
+temp/
+
+# Large model artifacts kept out of git
+models/checkpoints/
+models/exported/
+
+# Reports generated automatically
+reports/figures/
+reports/tables/
+reports/predictions/
+reports/summaries/
+
+# DVC cache
+.dvc/cache/

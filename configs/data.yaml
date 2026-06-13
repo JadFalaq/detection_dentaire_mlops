@@ -1,0 +1,26 @@
+dataset:
+  root: data/processed/dataset_7classes
+
+splits:
+  train_images: data/processed/dataset_7classes/train/images
+  train_labels: data/processed/dataset_7classes/train/labels
+
+  eval_images: data/processed/dataset_7classes/eval/images
+  eval_labels: data/processed/dataset_7classes/eval/labels
+
+  test_images: data/processed/dataset_7classes/test/images
+  test_labels: data/processed/dataset_7classes/test/labels
+
+  external_images: data/processed/dataset_7classes/test_alte_cabinete/Ext-validation/images
+  external_labels: data/processed/dataset_7classes/test_alte_cabinete/Ext-validation/labels
+
+classes:
+  num_classes: 7
+  names:
+    0: CARIES
+    1: PERIAPICAL_PATHOLOGY
+    2: PERIODONTAL_BONE
+    3: IMPACTED_TOOTH
+    4: ROOT_PATHOLOGY
+    5: TREATED_TOOTH
+    6: DEVICE_IMPLANT

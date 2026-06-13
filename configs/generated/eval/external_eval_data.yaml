@@ -1,0 +1,12 @@
+path: C:\Users\falaq\OneDrive\Desktop\Jad Falaq\PFA 2A\detection_dentaire_mlops\data\processed\dataset_7classes
+train: train/images
+val: test_alte_cabinete/Ext-validation/images
+names:
+- CARIES
+- PERIAPICAL_PATHOLOGY
+- PERIODONTAL_BONE
+- IMPACTED_TOOTH
+- ROOT_PATHOLOGY
+- TREATED_TOOTH
+- DEVICE_IMPLANT
+nc: 7

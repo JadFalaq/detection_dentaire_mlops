@@ -42,8 +42,12 @@ tmp/
 temp/
 
 # Large model artifacts kept out of git
-models/checkpoints/
+# Exception : le checkpoint Champion est inclus pour le déploiement Docker autonome
+models/checkpoints/*/weights/best.pt
+models/checkpoints/*/weights/last.pt
 models/exported/
+# Autoriser explicitement le checkpoint Champion
+!models/checkpoints/champion/weights/best.pt
 
 # Reports generated automatically
 reports/figures/

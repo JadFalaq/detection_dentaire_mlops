@@ -4,7 +4,7 @@ inference:
   conf_threshold: 0.25
   iou_threshold: 0.50
   max_det: 300
-  device: 0
+  device: cpu
   save_txt: false
   save_conf: true
 

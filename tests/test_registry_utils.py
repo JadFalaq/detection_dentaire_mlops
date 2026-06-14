@@ -28,8 +28,13 @@ def test_update_model_registry_sets_champion_and_alias(tmp_path):
     assert alias_path.exists()
     assert alias_path.read_bytes() == b"baseline"
     assert payload["champion"]["name"] == "baseline"
-    assert saved["champion"]["checkpoint"] == "models\\checkpoints\\champion\\weights\\best.pt"
-    assert saved["champion"]["source_checkpoint"] == "models\\checkpoints\\baseline\\weights\\best.pt"
+
+    # Normalise les séparateurs pour compatibilité Windows/Linux
+    saved_checkpoint = saved["champion"]["checkpoint"].replace("\\", "/")
+    saved_source = saved["champion"]["source_checkpoint"].replace("\\", "/")
+
+    assert saved_checkpoint == "models/checkpoints/champion/weights/best.pt"
+    assert saved_source == "models/checkpoints/baseline/weights/best.pt"
 
 
 def test_update_model_registry_archives_previous_champion(tmp_path):

@@ -1,0 +1,337 @@
+\documentclass[a4paper,12pt]{report}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[left=2.5cm,right=2.5cm,top=2cm,bottom=3.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{subcaption}
+
+\definecolor{codebg}{gray}{0.95}
+\definecolor{codeframe}{gray}{0.75}
+
+\lstset{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  literate={é}{{\'e}}1 {è}{{\`e}}1 {ê}{{\^e}}1 {à}{{\`a}}1 {ù}{{\`u}}1 {î}{{\^i}}1 {ô}{{\^o}}1
+}
+
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-10pt}{10pt}
+\titleformat{\section}
+  {\normalfont\Large\bfseries}{\thesection}{1em}{}
+
+\newcommand{\reportUE}{}
+\newcommand{\reportSujet}{}
+\newcommand{\reportTitre}{}
+\newcommand{\reportEnseignant}{}
+\newcommand{\reportEleves}{}
+\newcommand{\reportJury}{}
+
+\newcommand{\UE}[1]{\gdef\reportUE{#1}}
+\newcommand{\sujet}[1]{\gdef\reportSujet{#1}}
+\newcommand{\titre}[1]{\gdef\reportTitre{#1}}
+\newcommand{\enseignant}[1]{\gdef\reportEnseignant{#1}}
+\newcommand{\eleves}[1]{\gdef\reportEleves{#1}}
+\newcommand{\jury}[1]{\gdef\reportJury{#1}}
+
+\newcommand{\fairemarges}{
+\fancyhf{}
+\setlength{\headheight}{15pt}
+\fancyfoot[C]{\thepage}
+\fancyfoot[L]{Rapport PFA -- Detection Dentaire MLOps}
+\fancyfoot[R]{2025--2026}
+\fancyhead[L]{\nouppercase{\leftmark}}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{1pt}
+\pagestyle{fancy}
+}
+
+\newcommand{\fairepagedegarde}{
+\begin{titlepage}
+\centering
+\includegraphics[width=0.25\textwidth]{logos/ensias.png}\hfill
+\includegraphics[width=0.25\textwidth]{logos/um5logo.png}\par\vspace{1cm}
+{\scshape\LARGE \'Ecole Nationale Sup\'erieure d'Informatique et d'Analyse des Syst\`emes -- Rabat \par}
+\vspace{1.5cm}
+{\scshape\Large \reportUE \par \reportSujet \par}
+\vspace{1cm}
+\rule{\linewidth}{0.2mm}\par\vspace{0.4cm}
+{\huge\bfseries \reportTitre \par}
+\rule{\linewidth}{0.2mm}\par\vspace{1.5cm}
+\vspace{1cm}
+\begin{minipage}{0.5\textwidth}
+\begin{flushleft}\large
+\textbf{\'El\`eve :}\par
+\reportEleves\par
+\end{flushleft}
+\end{minipage}
+\hfill
+\begin{minipage}{0.4\textwidth}
+\begin{flushright}\large
+\textbf{Encadrant :}\par
+\reportEnseignant\par
+\end{flushright}
+\end{minipage}
+\vfill
+{\large Ann\'ee Universitaire 2025--2026\par}
+\end{titlepage}
+}
+
+\newcommand{\placeholderfigure}[3]{
+\begin{figure}[H]
+\centering
+\fbox{
+\begin{minipage}[c][0.20\textheight][c]{0.88\linewidth}
+\centering
+\textbf{Capture d'\'ecran \`a ins\'erer}\\[0.5em]
+\textit{#2}\\[0.5em]
+#3
+\end{minipage}
+}
+\caption{#1}
+\end{figure}
+}
+
+\newcommand{\projectpath}[1]{\texttt{\detokenize{#1}}}
+
+% ============================================================
+\begin{document}
+
+\UE{Projet de Fin d'Ann\'ee -- Module MLOps}
+\titre{Industrialisation d'un syst\`eme de d\'etection d'anomalies dentaires sur radiographies panoramiques}
+\sujet{Pipeline MLOps de bout en bout pour la d\'etection d'objets m\'edicaux}
+\enseignant{M. Mohamed \textsc{Lazaar}}
+\eleves{Jad \textsc{Falaq}}
+\jury{}
+
+\fairemarges
+\fairepagedegarde
+
+% ============================================================
+% REMERCIEMENTS
+% ============================================================
+\chapter*{Remerciements}
+\addcontentsline{toc}{chapter}{Remerciements}
+
+Je tiens tout d'abord \`a exprimer ma sinc\`ere gratitude envers mon encadrant, M. Mohamed \textsc{Lazaar}, pour la qualit\'e de son enseignement du module MLOps, ses conseils pr\'ecieux et sa disponibilit\'e tout au long de ce projet. Ses orientations m'ont permis de structurer ce travail selon les bonnes pratiques de l'ing\'enierie du Machine Learning et de d\'epasser le cadre d'un simple entra\^inement de mod\`ele pour construire un v\'eritable syst\`eme reproductible et d\'eployable.
+
+Je remercie \'egalement l'\'Ecole Nationale Sup\'erieure d'Informatique et d'Analyse des Syst\`emes (ENSIAS) pour le cadre p\'edagogique offert et les ressources mises \`a disposition.
+
+Enfin, je remercie ma famille pour son soutien constant durant cette ann\'ee universitaire.
+
+% ============================================================
+% RESUME
+% ============================================================
+\chapter*{R\'esum\'e}
+\addcontentsline{toc}{chapter}{R\'esum\'e}
+
+Ce projet de fin d'ann\'ee s'inscrit dans le cadre du module MLOps et porte sur l'industrialisation d'un syst\`eme de d\'etection d'anomalies et de pathologies dentaires \`a partir de radiographies panoramiques. L'objectif principal est de transformer un travail exp\'erimental de vision par ordinateur en une solution reproductible, structur\'ee, testable et d\'eployable, conforme aux bonnes pratiques professionnelles du Machine Learning Engineering.
+
+Le travail r\'ealis\'e couvre l'ensemble du cycle de vie d'un syst\`eme ML moderne. Il commence par l'audit du dataset YOLO brut, son analyse exploratoire et son contr\^ole qualit\'e. Cette phase a permis d'identifier la structure des splits, de v\'erifier la coh\'erence image-label, d'\'etudier la distribution des classes et des bo\^ites englobantes, puis de motiver un remappage clinique de 14 classes vers 7 classes finales plus pertinentes pour l'usage cible. Le jeu de donn\'ees a ensuite \'et\'e pr\'epar\'e et versionn\'e avec DVC afin de garantir la tra\c{c}abilit\'e des transformations et la reproductibilit\'e des artefacts.
+
+Sur le plan logiciel, le projet a \'et\'e organis\'e selon une architecture Python modulaire s\'eparant clairement les responsabilit\'es entre les modules de donn\'ees, les wrappers de mod\`eles, les utilitaires MLOps, les fonctions d'inf\'erence, le service API et les scripts CLI. Cette structuration permet de passer d'un usage en notebook \`a une base de code maintenable, testable et r\'eutilisable. Des tests automatis\'es ont \'et\'e ajout\'es sur les composants critiques.
+
+La phase exp\'erimentale s'appuie sur YOLOv8 et sur MLflow pour le suivi des essais, l'enregistrement des param\`etres, des m\'etriques et des artefacts d'entra\^inement. Plusieurs variantes de mod\`ele ont \'et\'e compar\'ees objectivement sur les splits \textit{eval}, \textit{test} et \textit{external}. Cette comparaison a conduit \`a retenir comme mod\`ele principal une variante offrant le meilleur compromis global entre performance de validation interne et capacit\'e de g\'en\'eralisation sur un split externe.
+
+Enfin, le mod\`ele s\'electionn\'e a \'et\'e int\'egr\'e dans un service d'inf\'erence exposant une API REST avec FastAPI, conteneuris\'e avec Docker et accompagn\'e de workflows GitHub Actions pour la v\'erification continue et la construction de l'image de service. Une interface frontend React compl\`ete la cha\^ine en offrant une d\'emonstration interactive du syst\`eme.
+
+\textbf{Mots-cl\'es :} MLOps, d\'etection d'objets, YOLOv8, radiographies dentaires, DVC, MLflow, FastAPI, Docker, CI/CD, reproductibilit\'e.
+
+% ============================================================
+% ABSTRACT
+% ============================================================
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+This final year project focuses on the industrialization of a dental anomaly detection system from panoramic radiographs within an MLOps course context. The objective is not limited to training an object detection model; it consists in building a complete, reproducible and deployable machine learning workflow, from exploratory data analysis to model serving in a production-like setting.
+
+The project starts with a rigorous audit of the raw YOLO dataset, followed by exploratory analysis and label quality checks. Based on these findings, the original 14-class annotation scheme is remapped into 7 clinically meaningful target classes. The resulting processed dataset is versioned with DVC in order to ensure traceability, reproducibility and proper control over data transformations.
+
+The codebase is organized as a modular Python project with reusable components for data handling, model wrappers, MLOps utilities, inference and API serving. This design makes the project maintainable, testable and aligned with professional software engineering standards. Automated tests cover critical utilities such as configuration loading, project path resolution, YOLO label parsing, class remapping, model registry helpers and API behavior.
+
+Model experimentation relies on YOLOv8 and MLflow for run tracking, artifact logging and metric comparison. Several model variants are evaluated on internal and external splits, leading to a reasoned model selection strategy based on global performance compromise rather than a single metric. The selected model is then exposed through a FastAPI REST service, packaged in Docker and integrated with GitHub Actions workflows for continuous verification and service image build validation. A React frontend provides an interactive demonstration of the complete system.
+
+\textbf{Keywords:} MLOps, object detection, YOLOv8, dental radiographs, DVC, MLflow, FastAPI, Docker, CI/CD, reproducibility.
+
+% ============================================================
+\tableofcontents
+\listoffigures
+\listoftables
+\newpage
+
+
+% ============================================================
+% CHAPITRE 1 : INTRODUCTION GENERALE
+% ============================================================
+\chapter{Introduction G\'en\'erale}
+
+\section{Contexte}
+Le Machine Learning ne peut plus \^etre abord\'e uniquement sous l'angle de l'entra\^inement d'un mod\`ele. Dans un contexte r\'eel, un syst\`eme intelligent doit s'appuyer sur des donn\'ees versionn\'ees, des traitements reproductibles, des exp\'eriences comparables, un code maintenable et des m\'ecanismes de d\'eploiement coh\'erents. C'est pr\'ecis\'ement la finalit\'e du MLOps, qui vise \`a r\'eduire l'\'ecart entre exp\'erimentation locale et exploitation op\'erationnelle.
+
+Le projet trait\'e dans ce rapport porte sur la d\'etection d'anomalies dentaires sur radiographies panoramiques. La t\^ache est formul\'ee comme un probl\`eme de d\'etection d'objets supervis\'ee. Les radiographies peuvent contenir plusieurs anomalies ou dispositifs sur une m\^eme image, ce qui justifie l'usage d'un d\'etecteur de type YOLO. Toutefois, l'int\'er\^et du travail ne r\'eside pas seulement dans le choix du mod\`ele, mais dans la construction d'une cha\^ine MLOps compl\`ete et coh\'erente.
+
+\section{Probl\'ematique}
+Le besoin initial peut \^etre formul\'e de la mani\`ere suivante : \textit{comment construire un syst\`eme de d\'etection d'anomalies dentaires capable d'\^etre entra\^in\'e, \'evalu\'e, compar\'e, s\'electionn\'e puis d\'eploy\'e dans un cadre reproductible et industrialisable ?}
+
+Derri\`ere cette question g\'en\'erale se cachent plusieurs difficult\'es :
+\begin{itemize}
+\item La premi\`ere concerne la donn\'ee elle-m\^eme, puisqu'un projet de d\'etection n'est fiable que si les images, les labels et les splits sont coh\'erents.
+\item La deuxi\`eme tient au fait que le corpus initial comporte une taxonomie de classes h\'et\'erog\`ene qu'il faut transformer en une cible plus stable et plus interpr\'etable.
+\item La troisi\`eme difficult\'e porte sur la reproductibilit\'e : il ne suffit pas d'obtenir un bon r\'esultat une fois, il faut \^etre capable de rejouer les traitements, de retrouver les param\`etres utilis\'es et d'expliquer pourquoi un mod\`ele a \'et\'e retenu plut\^ot qu'un autre.
+\item Enfin, un v\'eritable projet MLOps ne s'arr\^ete pas \`a l'entra\^inement, car il doit \'egalement proposer une forme de mise \`a disposition du mod\`ele, ainsi qu'un cadre de packaging et d'automatisation suffisamment robuste.
+\end{itemize}
+
+\section{Objectifs}
+Le projet poursuit un double objectif :
+\begin{enumerate}
+\item Produire une solution de d\'etection d'anomalies dentaires sur radiographies panoramiques reposant sur un mod\`ele pertinent et \'evalu\'e de mani\`ere rigoureuse.
+\item Inscrire cette solution dans une logique d'ing\'enierie MLOps compl\`ete : audit du dataset, analyse exploratoire, structuration modulaire du code, versionnement des donn\'ees avec DVC, tracking des exp\'eriences avec MLflow, comparaison objective de plusieurs variantes de mod\`ele, exposition du mod\`ele retenu via une API REST, conteneurisation avec Docker et automatisation des v\'erifications avec GitHub Actions.
+\end{enumerate}
+
+\section{Organisation du rapport}
+Le pr\'esent document est organis\'e comme suit :
+\begin{itemize}
+\item \textbf{Chapitre 2} -- Pr\'esentation des technologies et outils utilis\'es dans le projet.
+\item \textbf{Chapitre 3} -- Contexte m\'etier, dataset et enseignements de l'analyse exploratoire.
+\item \textbf{Chapitre 4} -- Pr\'eparation des donn\'ees et pipeline DVC.
+\item \textbf{Chapitre 5} -- Architecture logicielle et organisation du code.
+\item \textbf{Chapitre 6} -- Strat\'egie exp\'erimentale, suivi MLflow et comparaison des mod\`eles.
+\item \textbf{Chapitre 7} -- Industrialisation : API, frontend, Docker et CI/CD.
+\item \textbf{Chapitre 8} -- Bilan, comp\'etences mobilis\'ees et perspectives.
+\end{itemize}
+
+
+% ============================================================
+% CHAPITRE 2 : TECHNOLOGIES ET OUTILS
+% ============================================================
+\chapter{Technologies et Outils Utilis\'es}
+
+Ce chapitre pr\'esente l'ensemble des technologies, frameworks et outils mobilis\'es dans le projet. Chaque choix technique est justifi\'e par son ad\'equation avec les objectifs MLOps du projet.
+
+\section{Vue d'ensemble de la pile technologique}
+
+\begin{table}[H]
+\centering
+\caption{Pile technologique compl\`ete du projet}
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Couche} & \textbf{Outil} & \textbf{R\^ole dans le projet} \\
+\midrule
+Langage & Python 3.11 & Langage principal pour l'ensemble du pipeline \\
+D\'etection & YOLOv8 (Ultralytics) & Mod\`ele de d\'etection d'objets en temps r\'eel \\
+Tracking & MLflow & Suivi des exp\'eriences, m\'etriques et artefacts \\
+Donn\'ees & DVC & Versionnement des datasets et pipeline de donn\'ees \\
+API & FastAPI & Service d'inf\'erence REST \\
+Serveur & Uvicorn & Serveur ASGI pour FastAPI \\
+Frontend & React 19 + Vite 8 & Interface de d\'emonstration interactive \\
+Conteneur & Docker & Conteneurisation du service d'inf\'erence \\
+CI/CD & GitHub Actions & Int\'egration et d\'eploiement continus \\
+Tests & pytest & Framework de tests unitaires \\
+Config & YAML & Externalisation des param\`etres et configurations \\
+Packaging & setuptools + pyproject.toml & Installation et distribution du package Python \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Python et l'\'ecosyst\`eme scientifique}
+Le projet repose sur Python 3.11 et utilise un ensemble de biblioth\`eques scientifiques et d'ing\'enierie :
+
+\begin{table}[H]
+\centering
+\caption{Biblioth\`eques Python utilis\'ees}
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Biblioth\`eque} & \textbf{Version} & \textbf{Usage} \\
+\midrule
+NumPy & $\geq$ 1.26 & Calcul num\'erique et manipulation de tableaux \\
+Pandas & $\geq$ 2.2 & Analyse de donn\'ees tabulaires \\
+Matplotlib & $\geq$ 3.8 & Visualisation et graphiques \\
+Seaborn & $\geq$ 0.13 & Visualisations statistiques \\
+OpenCV & $\geq$ 4.9 & Traitement d'images \\
+Pillow & $\geq$ 10.0 & Manipulation d'images \\
+scikit-learn & $\geq$ 1.4 & Utilitaires de Machine Learning \\
+PyYAML & $\geq$ 6.0 & Parsing des fichiers de configuration \\
+tqdm & $\geq$ 4.66 & Barres de progression \\
+httpx & $\geq$ 0.27 & Client HTTP pour les tests d'int\'egration \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{YOLOv8 et Ultralytics}
+YOLOv8 est la huitieme it\'eration de la famille YOLO (\textit{You Only Look Once}), d\'evelopp\'ee par Ultralytics. Ce framework offre un d\'etecteur d'objets performant, avec une API Python int\'egr\'ee facilitant l'entra\^inement, la validation et l'inf\'erence. La variante \texttt{yolov8s} (small) a \'et\'e retenue pour ce projet comme compromis entre pr\'ecision et vitesse d'inf\'erence.
+
+Principaux avantages pour ce projet :
+\begin{itemize}
+\item Entra\^inement et inf\'erence en quelques lignes de code Python
+\item G\'en\'eration automatique de m\'etriques, courbes PR, matrices de confusion
+\item Compatibilit\'e avec des augmentations configurables
+\item Export des poids au format \texttt{.pt} pour un d\'eploiement l\'eger
+\end{itemize}
+
+\section{MLflow -- Suivi des exp\'eriences}
+MLflow est une plateforme open source de gestion du cycle de vie ML. Dans ce projet, il est utilis\'e pour :
+\begin{itemize}
+\item Enregistrer les param\`etres d'entra\^inement (hyperParam\`etres, configurations)
+\item Logger les m\'etriques d'\'evaluation par split (mAP, precision, recall)
+\item Stocker les artefacts (checkpoints, courbes, fichiers de configuration)
+\item Comparer visuellement les runs dans l'interface web
+\end{itemize}
+Le serveur MLflow est d\'eploy\'e localement sur \texttt{http://127.0.0.1:5000} avec une base SQLite pour le stockage des m\'etadonn\'ees.
+
+\section{DVC -- Versionnement des donn\'ees}
+DVC (\textit{Data Version Control}) est un outil de versionnement de donn\'ees et de pipelines ML. Il s'int\`egre avec Git pour suivre les fichiers volumineux sans les stocker dans le d\'ep\^ot. Dans ce projet, DVC est utilis\'e pour :
+\begin{itemize}
+\item Versionner le dataset brut (\texttt{data/raw/dataset\_original.dvc})
+\item D\'efinir un pipeline reproductible en 3 \'etapes (\texttt{dvc.yaml})
+\item Garantir la tra\c{c}abilit\'e des transformations de donn\'ees
+\end{itemize}
+
+\section{FastAPI -- Service d'inf\'erence}
+FastAPI est un framework web Python moderne et performant pour la cr\'eation d'API REST. Il a \'et\'e choisi pour :
+\begin{itemize}
+\item Sa g\'en\'eration automatique de documentation Swagger (\texttt{/docs})
+\item Son support natif de la validation avec Pydantic
+\item Sa compatibilit\'e asynchrone avec Uvicorn
+\item Sa simplicit\'e d'int\'egration avec le syst\`eme d'upload de fichiers
+\end{itemize}
+
+\section{React et Vite -- Frontend de d\'emonstration}
+Le frontend utilise React 19 avec Vite 8 comme outil de build. Cette combinaison offre :
+\begin{itemize}
+\item Un d\'emarrage instantan\'e en d\'eveloppement (\textit{Hot Module Replacement})
+\item Un bundling optimis\'e pour la production
+\item Un proxy configurable pour rediriger les appels API vers le backend
+\end{itemize}
+
+\section{Docker -- Conteneurisation}
+Docker est utilis\'e pour packager le service d'inf\'erence dans un conteneur l\'eger, bas\'e sur \texttt{python:3.11-slim}. L'image est volontairement orient\'ee CPU pour \'eviter les d\'ependances CUDA lourdes et faciliter le d\'eploiement sur des environnements vari\'es.
+
+\section{GitHub Actions -- CI/CD}
+GitHub Actions permet l'automatisation des v\'erifications et du packaging :
+\begin{itemize}
+\item \textbf{CI} : ex\'ecution des tests pytest, v\'erification des points d'entr\'ee CLI
+\item \textbf{CD} : construction automatique de l'image Docker du service lors de modifications des fichiers critiques
+\end{itemize}
+
+\section{pytest -- Tests automatis\'es}
+pytest est le framework de test standard en Python. Il est utilis\'e dans ce projet pour valider les composants critiques : chargement YAML, r\'esolution de chemins, parsing de labels, remappage de classes, op\'erations du registre et endpoints de l'API.
+

@@ -1,0 +1,66 @@
+\chapter{Commandes utiles}
+\section{Quelques commandes}
+
+Voici quelques commandes utiles : \cite{latex:companion}
+
+%------ Pour insérer et citer une image centralisée -----
+\subsection{Commande pour insérer et citer une image centralisée}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\linewidth]{logos/ensias.png}
+    \caption{Légende de la figure}
+    \label{fig:Label de la figure}
+\end{figure}
+% Le premier argument est le chemin pour la photo
+% Le deuxième est la hauteur de la photo
+% Le troisième la légende
+% Le quatrième le label
+Ici, je cite l'image \ref{fig:Label de la figure}
+
+
+%------- Pour insérer et citer une équation --------------
+\subsection{Commande pour insérer et citer une équation}
+\begin{equation} \label{eq: exemple}
+\rho + \Delta = 42
+\end{equation}
+
+L'équation \ref{eq: exemple} est cité ici. \cite{knuth:1984}
+
+% ------- Pour écrire des variables ----------------------
+
+Pour écrire des variables dans le texte, il suffit de mettre le symbole \$ entre le texte souhaité comme : constante $\rho$. 
+
+%------- Pour ecrire un code ------------------------------
+\newpage
+\subsection{Commande pour ecrire un code}
+
+%linenos pour avoir les nombres des lignes 
+%specifier la language de programmation utilisé
+
+\begin{listing}[!ht]
+\begin{minted}[bgcolor=bg,linenos]{C}
+#ifndef DECLARATION_H_INCLUDED
+#define DECLARATION_H_INCLUDED
+
+//declaration de structure qui englobe les donnees d'un adherant
+typedef struct _donnee
+{
+    char code[20];
+    char nom[20];
+    char domaineInteret[20];
+}donnees;
+
+#endif // DECLARATION_H_INCLUDED
+\end{minted}
+\caption{exemple de caption de code C}
+\label{listing 1}
+\end{listing}
+
+One-line code formatting also works with \texttt{minted}. For example, a small fragment of HTML like this:
+\mint{html}|<h2>Something <b>here</b></h2>|
+\noindent can be formatted correctly.
+
+
+
+\LaTeX{} \cite{latex2e} is a set of macros built atop \TeX{} \cite{texbook}.

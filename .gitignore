@@ -6,6 +6,7 @@ __pycache__/
 
 # Virtual environment
 .venv/
+.venv_ci_test/
 venv/
 
 # Jupyter
@@ -29,6 +30,8 @@ dist/
 
 # MLflow local runs
 mlruns/
+mlflow.db
+mlartifacts/
 
 # Python test / cache
 .pytest_cache/
@@ -50,3 +53,15 @@ reports/summaries/
 
 # DVC cache
 .dvc/cache/
+
+# YOLO pretrained weights
+*.pt
+
+# Notebooks (local EDA only)
+notebooks/
+
+# Course material
+cours/
+
+# Misc
+legend.txt

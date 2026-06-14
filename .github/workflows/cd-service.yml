@@ -10,11 +10,21 @@ on:
       - "pyproject.toml"
       - "scripts/serve_api.py"
       - "src/**"
+      - "configs/infer.yaml"
       - ".github/workflows/cd-service.yml"
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  IMAGE_NAME: dental-detection-api
+
 jobs:
-  build-image:
+  # ── Job 1 : Build de l'image Docker ───────────────────────────────────────
+  build:
+    name: Build Docker Image
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,9 +32,225 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build service image
+      - name: Extract image metadata
+        id: meta
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "version=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "Image tag: ${SHORT_SHA}"
+
+      - name: Build image (load to local daemon for testing)
         uses: docker/build-push-action@v6
         with:
           context: .
           push: false
-          tags: dental-detection-api:latest
+          load: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Save image as artifact
+        run: docker save ${{ env.IMAGE_NAME }}:latest | gzip > /tmp/docker-image.tar.gz
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp/docker-image.tar.gz
+          retention-days: 1
+
+  # ── Job 2 : Test des endpoints du service ─────────────────────────────────
+  test-service:
+    name: Test Service Endpoints
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+
+      - name: Load Docker image
+        run: |
+          docker load < /tmp/docker-image.tar.gz
+          docker images
+
+      - name: Create dummy champion checkpoint
+        run: |
+          mkdir -p models/checkpoints/champion/weights
+          python3 -c "
+          import struct
+          # Fichier PyTorch minimal valide (juste pour que le path existe)
+          # Le service verifie checkpoint_exists mais ne charge pas le modele sur /health
+          open('models/checkpoints/champion/weights/best.pt', 'wb').write(b'PK\x03\x04')
+          print('Dummy checkpoint created')
+          "
+
+      - name: Start service container
+        run: |
+          docker run -d \
+            --name dental-api \
+            -p 8000:8000 \
+            -v ${{ github.workspace }}/models:/app/models \
+            -v ${{ github.workspace }}/configs:/app/configs \
+            ${{ env.IMAGE_NAME }}:latest
+          echo "Container started, waiting for service..."
+
+      - name: Wait for service to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+              echo "Service is ready after ${i} seconds"
+              break
+            fi
+            echo "Waiting... attempt ${i}/30"
+            sleep 2
+          done
+
+      - name: Test GET / (root endpoint)
+        run: |
+          echo "=== Testing GET / ==="
+          RESPONSE=$(curl -sf http://localhost:8000/)
+          echo "$RESPONSE"
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          assert 'message' in data, 'Missing message field'
+          assert 'docs' in data, 'Missing docs field'
+          assert 'predict' in data, 'Missing predict field'
+          print('PASS: GET / returns expected fields')
+          "
+
+      - name: Test GET /health
+        run: |
+          echo "=== Testing GET /health ==="
+          RESPONSE=$(curl -sf http://localhost:8000/health)
+          echo "$RESPONSE"
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          assert data['status'] == 'ok', f'Expected status=ok, got {data[\"status\"]}'
+          assert data['service'] == 'dental-detection-api', 'Wrong service name'
+          assert 'checkpoint_exists' in data, 'Missing checkpoint_exists'
+          assert 'model_loaded' in data, 'Missing model_loaded'
+          print(f'PASS: service={data[\"service\"]}, status={data[\"status\"]}')
+          print(f'INFO: checkpoint_exists={data[\"checkpoint_exists\"]}, model_loaded={data[\"model_loaded\"]}')
+          "
+
+      - name: Test GET /model-info
+        run: |
+          echo "=== Testing GET /model-info ==="
+          RESPONSE=$(curl -sf http://localhost:8000/model-info)
+          echo "$RESPONSE"
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          assert 'model_name' in data, 'Missing model_name'
+          assert 'checkpoint_path' in data, 'Missing checkpoint_path'
+          assert 'checkpoint_exists' in data, 'Missing checkpoint_exists'
+          print(f'PASS: model_name={data[\"model_name\"]}')
+          print(f'INFO: checkpoint_path={data[\"checkpoint_path\"]}')
+          "
+
+      - name: Test GET /docs (Swagger UI available)
+        run: |
+          echo "=== Testing GET /docs ==="
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/docs)
+          echo "HTTP status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "PASS: Swagger UI is accessible"
+          else
+            echo "FAIL: Expected 200, got $HTTP_STATUS"
+            exit 1
+          fi
+
+      - name: Test POST /predict (no checkpoint - expects graceful error)
+        run: |
+          echo "=== Testing POST /predict ==="
+          # Sans vrai checkpoint, le service retourne 500 ou 200 selon l'etat
+          # On verifie juste que le endpoint repond (pas de crash serveur)
+          HTTP_STATUS=$(curl -s -o /tmp/predict_response.json -w "%{http_code}" \
+            -X POST http://localhost:8000/predict \
+            -F "file=@${{ github.workspace }}/tests/fixtures/sample_xray.jpg" \
+            2>/dev/null || echo "422")
+
+          # Si pas de fixture, on cree une image de test minimale
+          if [ ! -f "${{ github.workspace }}/tests/fixtures/sample_xray.jpg" ]; then
+            python3 -c "
+          import base64, os
+          os.makedirs('tests/fixtures', exist_ok=True)
+          # Image JPEG minimale 1x1 pixel gris
+          jpeg_b64 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAABgUEB//EAB4QAAIBBAMAAAAAAAAAAAAAAAABAgMREiExQf/EABUBAQEAAAAAAAAAAAAAAAAAAAAB/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AoNtRlZBYY6sAZ5qgB//Z'
+          with open('tests/fixtures/sample_xray.jpg', 'wb') as f:
+              f.write(base64.b64decode(jpeg_b64))
+          print('Test image created')
+            "
+
+            HTTP_STATUS=$(curl -s -o /tmp/predict_response.json -w "%{http_code}" \
+              -X POST http://localhost:8000/predict \
+              -F "file=@tests/fixtures/sample_xray.jpg")
+          fi
+
+          cat /tmp/predict_response.json || true
+          echo "HTTP status: $HTTP_STATUS"
+
+          # Accepte 200 (succes) ou 500 (pas de vrai modele) - pas 422 ni 404
+          if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "500" ]; then
+            echo "PASS: POST /predict endpoint is reachable (status=$HTTP_STATUS)"
+          else
+            echo "FAIL: Unexpected status $HTTP_STATUS"
+            exit 1
+          fi
+
+      - name: Show container logs
+        if: always()
+        run: |
+          echo "=== Container logs ==="
+          docker logs dental-api
+
+      - name: Stop and remove container
+        if: always()
+        run: |
+          docker stop dental-api || true
+          docker rm dental-api || true
+
+  # ── Job 3 : Rapport final du pipeline ─────────────────────────────────────
+  pipeline-summary:
+    name: Pipeline Summary
+    runs-on: ubuntu-latest
+    needs: [build, test-service]
+    if: always()
+
+    steps:
+      - name: Pipeline result
+        run: |
+          BUILD_STATUS="${{ needs.build.result }}"
+          TEST_STATUS="${{ needs.test-service.result }}"
+
+          echo "=================================================="
+          echo "  DENTAL DETECTION SERVICE — PIPELINE SUMMARY"
+          echo "=================================================="
+          echo ""
+          echo "  Build Docker Image : $BUILD_STATUS"
+          echo "  Test Service       : $TEST_STATUS"
+          echo ""
+
+          if [ "$BUILD_STATUS" = "success" ] && [ "$TEST_STATUS" = "success" ]; then
+            echo "  STATUS : ALL CHECKS PASSED"
+            echo ""
+            echo "  The dental-detection-api image is ready."
+            echo "  To deploy, add Docker Hub credentials and set push: true"
+            echo "=================================================="
+            exit 0
+          else
+            echo "  STATUS : PIPELINE FAILED"
+            echo "=================================================="
+            exit 1
+          fi

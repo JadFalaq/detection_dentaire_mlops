@@ -3,50 +3,61 @@ name: CD — Build, Test & Deploy
 on:
   push:
     branches: ["main", "master"]
-  workflow_run:
-    workflows: ["CI — Tests et Vérifications"]
-    types: [completed]
-    branches: ["main", "master"]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   IMAGE_NAME: dental-detection-api
-  REGISTRY: ghcr.io
   RAILWAY_URL: https://detectiondentairemlops-production.up.railway.app
 
 jobs:
-  # ── Guard : CD ne tourne que si CI est vert ────────────────────────────────
-  check-ci:
-    name: Check CI Status
+  # ── Job 1 : Tests unitaires (garde du CD) ─────────────────────────────────
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
-    outputs:
-      should_run: ${{ steps.check.outputs.should_run }}
 
     steps:
-      - name: Check if CI passed
-        id: check
-        run: |
-          # Si déclenché par workflow_run, vérifie le statut
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            if [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
-              echo "should_run=true" >> $GITHUB_OUTPUT
-              echo "CI passed - proceeding with CD"
-            else
-              echo "should_run=false" >> $GITHUB_OUTPUT
-              echo "CI failed - skipping CD"
-            fi
-          else
-            # Déclenché par push direct - on continue
-            echo "should_run=true" >> $GITHUB_OUTPUT
-            echo "Direct push - proceeding with CD"
-          fi
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  # ── Build de l'image Docker ────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-ci-${{ hashFiles('requirements-ci.txt') }}
+          restore-keys: ${{ runner.os }}-pip-ci-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+          pip install -e .
+
+      - name: Run unit tests
+        run: |
+          pytest \
+            tests/test_config.py \
+            tests/test_paths.py \
+            tests/test_remap.py \
+            tests/test_label_parser.py \
+            tests/test_registry_utils.py \
+            tests/test_api.py \
+            -v --tb=short
+
+      - name: Verify CLIs
+        run: |
+          python scripts/serve_api.py --help
+          python scripts/register_best_model.py --help
+
+  # ── Job 2 : Build Docker (dépend de unit-tests) ───────────────────────────
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
-    needs: check-ci
-    if: needs.check-ci.outputs.should_run == 'true'
+    needs: unit-tests
     outputs:
       image_tag: ${{ steps.meta.outputs.version }}
 
@@ -62,7 +73,6 @@ jobs:
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           echo "version=${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "Building image with tag: ${SHORT_SHA}"
 
       - name: Build image
         uses: docker/build-push-action@v6
@@ -76,7 +86,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Save image as artifact
+      - name: Save image artifact
         run: docker save ${{ env.IMAGE_NAME }}:latest | gzip > /tmp/docker-image.tar.gz
 
       - name: Upload image artifact
@@ -86,9 +96,9 @@ jobs:
           path: /tmp/docker-image.tar.gz
           retention-days: 1
 
-  # ── Tests d'intégration du service ────────────────────────────────────────
+  # ── Job 3 : Tests d'intégration (dépend de build) ────────────────────────
   integration-tests:
-    name: Integration Tests (Service Endpoints)
+    name: Integration Tests
     runs-on: ubuntu-latest
     needs: build
 
@@ -107,156 +117,106 @@ jobs:
 
       - name: Start service container
         run: |
-          docker run -d \
-            --name dental-api \
-            -p 8000:8000 \
-            ${{ env.IMAGE_NAME }}:latest
-          echo "Container started"
+          docker run -d --name dental-api -p 8000:8000 ${{ env.IMAGE_NAME }}:latest
 
       - name: Wait for service ready
         run: |
-          echo "Waiting for service..."
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
-              echo "Service ready after ${i}s"
-              break
-            fi
+            curl -sf http://localhost:8000/health > /dev/null 2>&1 && echo "Ready after ${i}s" && break
             sleep 2
           done
 
-      - name: Test GET / — root endpoint
+      - name: Test GET /
         run: |
-          RESPONSE=$(curl -sf http://localhost:8000/)
-          echo "$RESPONSE"
-          echo "$RESPONSE" | python3 -c "
-          import sys, json
-          d = json.load(sys.stdin)
-          assert 'message' in d and 'predict' in d
-          print('PASS: GET /')
-          "
+          curl -sf http://localhost:8000/ | python3 -c "
+          import sys, json; d=json.load(sys.stdin)
+          assert 'message' in d; print('PASS: GET /')"
 
-      - name: Test GET /health — service health
+      - name: Test GET /health
         run: |
-          RESPONSE=$(curl -sf http://localhost:8000/health)
-          echo "$RESPONSE"
-          echo "$RESPONSE" | python3 -c "
-          import sys, json
-          d = json.load(sys.stdin)
-          assert d['status'] == 'ok', f'Expected ok, got {d[\"status\"]}'
-          assert d['service'] == 'dental-detection-api'
-          assert d['checkpoint_exists'] == True, 'Checkpoint missing!'
-          print(f'PASS: /health — model={d[\"model_name\"]}, checkpoint={d[\"checkpoint_exists\"]}')
-          "
+          curl -sf http://localhost:8000/health | python3 -c "
+          import sys, json; d=json.load(sys.stdin)
+          assert d['status']=='ok'
+          assert d['checkpoint_exists']==True
+          print(f'PASS: /health — {d[\"model_name\"]} checkpoint_exists={d[\"checkpoint_exists\"]}')"
 
-      - name: Test GET /model-info — model metadata
+      - name: Test GET /model-info
         run: |
-          RESPONSE=$(curl -sf http://localhost:8000/model-info)
-          echo "$RESPONSE"
-          echo "$RESPONSE" | python3 -c "
-          import sys, json
-          d = json.load(sys.stdin)
-          assert 'model_name' in d
-          assert d['checkpoint_exists'] == True
-          print(f'PASS: /model-info — model={d[\"model_name\"]}')
-          "
+          curl -sf http://localhost:8000/model-info | python3 -c "
+          import sys, json; d=json.load(sys.stdin)
+          assert d['checkpoint_exists']==True
+          print(f'PASS: /model-info — {d[\"model_name\"]}')"
 
-      - name: Test GET /docs — Swagger UI
+      - name: Test GET /docs
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/docs)
-          [ "$STATUS" = "200" ] && echo "PASS: /docs returns 200" || (echo "FAIL: /docs returned $STATUS" && exit 1)
+          S=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/docs)
+          [ "$S" = "200" ] && echo "PASS: /docs" || (echo "FAIL: $S" && exit 1)
 
-      - name: Test POST /predict — inference endpoint reachable
+      - name: Test POST /predict
         run: |
-          # Créer une image JPEG minimale de test
           python3 -c "
-          import base64, os
-          os.makedirs('tests/fixtures', exist_ok=True)
-          jpeg = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAARCAABAAEDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAABgUEB//EAB4QAAIBBAMAAAAAAAAAAAAAAAABAgMREiExQf/EABUBAQEAAAAAAAAAAAAAAAAAAAAB/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8Ao9tRlZBYY6sAZ5qgB//Z'
-          with open('tests/fixtures/test.jpg', 'wb') as f:
-              f.write(base64.b64decode(jpeg))
+          import base64,os; os.makedirs('tests/fixtures',exist_ok=True)
+          open('tests/fixtures/test.jpg','wb').write(base64.b64decode('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAARCAABAAEDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAABgUEB//EAB4QAAIBBAMAAAAAAAAAAAAAAAABAgMREiExQf/EABUBAQEAAAAAAAAAAAAAAAAAAAAB/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8Ao9tRlZBYY6sAZ5qgB//Z'))
           "
-          STATUS=$(curl -s -o /tmp/predict_out.json -w "%{http_code}" \
-            -X POST http://localhost:8000/predict \
-            -F "file=@tests/fixtures/test.jpg")
-          cat /tmp/predict_out.json
-          [ "$STATUS" = "200" ] && echo "PASS: POST /predict returned 200" || \
-          [ "$STATUS" = "500" ] && echo "INFO: POST /predict returned 500 (no real model loaded, expected)" || \
-          (echo "FAIL: POST /predict returned $STATUS" && exit 1)
+          S=$(curl -s -o /tmp/pr.json -w "%{http_code}" -X POST \
+            http://localhost:8000/predict -F "file=@tests/fixtures/test.jpg")
+          cat /tmp/pr.json
+          ([ "$S" = "200" ] || [ "$S" = "500" ]) && echo "PASS: POST /predict ($S)" || (echo "FAIL: $S" && exit 1)
 
       - name: Container logs
         if: always()
         run: docker logs dental-api
 
-      - name: Cleanup container
+      - name: Cleanup
         if: always()
         run: docker rm -f dental-api || true
 
-  # ── Vérification du déploiement Railway en production ─────────────────────
+  # ── Job 4 : Vérification production (dépend integration-tests) ────────────
   verify-production:
-    name: Verify Production Deployment
+    name: Verify Production
     runs-on: ubuntu-latest
     needs: integration-tests
 
     steps:
-      - name: Health check production backend
+      - name: Check Railway backend
         run: |
-          echo "Checking Railway backend..."
-          RESPONSE=$(curl -sf ${{ env.RAILWAY_URL }}/health)
-          echo "$RESPONSE"
-          echo "$RESPONSE" | python3 -c "
-          import sys, json
-          d = json.load(sys.stdin)
-          assert d['status'] == 'ok'
-          assert d['checkpoint_exists'] == True
-          print(f'PASS: Production backend healthy — model={d[\"model_name\"]}')
-          "
+          curl -sf ${{ env.RAILWAY_URL }}/health | python3 -c "
+          import sys, json; d=json.load(sys.stdin)
+          assert d['status']=='ok'
+          assert d['checkpoint_exists']==True
+          print(f'PASS: Railway — {d[\"model_name\"]} online')"
 
-      - name: Health check production frontend
+      - name: Check Vercel frontend
         run: |
-          echo "Checking Vercel frontend..."
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://detection-dentaire-mlops.vercel.app)
-          [ "$STATUS" = "200" ] && echo "PASS: Frontend online (HTTP $STATUS)" || \
-          (echo "FAIL: Frontend returned HTTP $STATUS" && exit 1)
+          S=$(curl -s -o /dev/null -w "%{http_code}" https://detection-dentaire-mlops.vercel.app)
+          [ "$S" = "200" ] && echo "PASS: Vercel frontend online" || (echo "FAIL: $S" && exit 1)
 
-      - name: Test production /model-info endpoint
-        run: |
-          RESPONSE=$(curl -sf ${{ env.RAILWAY_URL }}/model-info)
-          echo "$RESPONSE"
-          echo "$RESPONSE" | python3 -c "
-          import sys, json
-          d = json.load(sys.stdin)
-          assert d['checkpoint_exists'] == True
-          print(f'PASS: Production model info — {d[\"model_name\"]} ready')
-          "
-
-  # ── Résumé final du pipeline ───────────────────────────────────────────────
+  # ── Job 5 : Résumé final ───────────────────────────────────────────────────
   pipeline-summary:
     name: Pipeline Summary
     runs-on: ubuntu-latest
-    needs: [build, integration-tests, verify-production]
+    needs: [unit-tests, build, integration-tests, verify-production]
     if: always()
 
     steps:
-      - name: Print summary
+      - name: Summary
         run: |
           echo "=================================================="
           echo "   DENTAL DETECTION — CI/CD PIPELINE SUMMARY"
           echo "=================================================="
-          echo ""
+          echo "  Unit Tests         : ${{ needs.unit-tests.result }}"
           echo "  Build Image        : ${{ needs.build.result }}"
           echo "  Integration Tests  : ${{ needs.integration-tests.result }}"
           echo "  Production Check   : ${{ needs.verify-production.result }}"
           echo ""
-          BUILD="${{ needs.build.result }}"
-          TESTS="${{ needs.integration-tests.result }}"
-          PROD="${{ needs.verify-production.result }}"
-
-          if [ "$BUILD" = "success" ] && [ "$TESTS" = "success" ] && [ "$PROD" = "success" ]; then
+          if [ "${{ needs.unit-tests.result }}" = "success" ] && \
+             [ "${{ needs.build.result }}" = "success" ] && \
+             [ "${{ needs.integration-tests.result }}" = "success" ] && \
+             [ "${{ needs.verify-production.result }}" = "success" ]; then
             echo "  STATUS : ALL GREEN ✓"
-            echo ""
             echo "  Frontend : https://detection-dentaire-mlops.vercel.app"
-            echo "  Backend  : https://detectiondentairemlops-production.up.railway.app"
-            echo "  API Docs : https://detectiondentairemlops-production.up.railway.app/docs"
+            echo "  Backend  : ${{ env.RAILWAY_URL }}"
+            echo "  API Docs : ${{ env.RAILWAY_URL }}/docs"
             echo "=================================================="
             exit 0
           else

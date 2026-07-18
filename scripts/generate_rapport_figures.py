@@ -393,6 +393,122 @@ def fig_model_radar():
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# Figure 9 — Architecture de déploiement cloud
+# ═══════════════════════════════════════════════════════════════════════════
+def fig_deployment_architecture():
+    fig, ax = plt.subplots(figsize=(14, 7))
+    ax.set_xlim(0, 14)
+    ax.set_ylim(0, 7)
+    ax.axis("off")
+
+    # ── Couleurs ──────────────────────────────────────────────────────────
+    C_USER    = "#EFF6FF"
+    C_VERCEL  = "#F0FDF4"
+    C_RAILWAY = "#FEF3C7"
+    C_DOCKER  = "#FEE2E2"
+    C_MODEL   = "#F3E8FF"
+    C_BORDER  = "#334155"
+
+    def box(x, y, w, h, color, label, sublabel="", icon=""):
+        rect = plt.Rectangle((x, y), w, h, fc=color, ec=C_BORDER,
+                              linewidth=1.5, zorder=3)
+        ax.add_patch(rect)
+        cx, cy = x + w / 2, y + h / 2
+        if icon:
+            ax.text(cx, cy + 0.28, icon, ha="center", va="center",
+                    fontsize=18, zorder=4)
+            ax.text(cx, cy - 0.22, label, ha="center", va="center",
+                    fontsize=10, fontweight="bold", color="#1e293b", zorder=4)
+        else:
+            ax.text(cx, cy + 0.15, label, ha="center", va="center",
+                    fontsize=10, fontweight="bold", color="#1e293b", zorder=4)
+        if sublabel:
+            ax.text(cx, cy - 0.28, sublabel, ha="center", va="center",
+                    fontsize=8, color="#475569", zorder=4, style="italic")
+
+    def arrow(x1, y1, x2, y2, label=""):
+        ax.annotate("", xy=(x2, y2), xytext=(x1, y1),
+                    arrowprops=dict(arrowstyle="-|>", color="#1e293b",
+                                   lw=1.8, mutation_scale=16), zorder=5)
+        if label:
+            mx, my = (x1 + x2) / 2, (y1 + y2) / 2 + 0.18
+            ax.text(mx, my, label, ha="center", va="bottom",
+                    fontsize=8, color="#1e293b",
+                    bbox=dict(fc="white", ec="none", pad=1))
+
+    def cloud_badge(x, y, text, color):
+        ax.text(x, y, text, ha="center", va="center", fontsize=7.5,
+                color="white", fontweight="bold",
+                bbox=dict(boxstyle="round,pad=0.35", fc=color,
+                          ec="none", zorder=6))
+
+    # ── Blocs principaux ──────────────────────────────────────────────────
+    # Utilisateur
+    box(0.3, 2.8, 1.8, 1.4, C_USER,    "Utilisateur",  "Navigateur web", "👤")
+    # Vercel
+    box(3.0, 2.8, 2.2, 1.4, C_VERCEL,  "Vercel",       "Frontend React", "🟢")
+    # Railway
+    box(6.2, 2.8, 2.2, 1.4, C_RAILWAY, "Railway",      "Backend FastAPI", "🚂")
+    # Docker
+    box(9.4, 2.8, 2.2, 1.4, C_DOCKER,  "Docker",       "Image CPU 1.19 GB", "🐳")
+    # Modèle
+    box(12.0, 2.8, 1.7, 1.4, C_MODEL,  "YOLOv8s",      "Champion (21MB)", "🧠")
+
+    # ── Flèches horizontales ──────────────────────────────────────────────
+    arrow(2.1, 3.5, 3.0, 3.5, "HTTPS")
+    arrow(5.2, 3.5, 6.2, 3.5, "POST /predict")
+    arrow(8.4, 3.5, 9.4, 3.5, "Run container")
+    arrow(11.6, 3.5, 12.0, 3.5, "Inference")
+
+    # ── Flèche retour ─────────────────────────────────────────────────────
+    ax.annotate("", xy=(2.1, 3.2), xytext=(3.0, 3.2),
+                arrowprops=dict(arrowstyle="-|>", color="#64748b",
+                                lw=1.2, mutation_scale=14,
+                                linestyle="dashed"), zorder=5)
+    ax.text(2.55, 3.02, "JSON détections", ha="center", fontsize=7.5,
+            color="#64748b", style="italic")
+
+    # ── GitHub en haut ────────────────────────────────────────────────────
+    box(4.5, 5.2, 5.0, 1.1, "#F8FAFC", "GitHub", "JadFalaq/detection_dentaire_mlops", "🐙")
+
+    # Flèches CI/CD vers Vercel et Railway
+    ax.annotate("", xy=(4.1, 4.2), xytext=(5.5, 5.2),
+                arrowprops=dict(arrowstyle="-|>", color="#3b82f6",
+                                lw=1.4, mutation_scale=13), zorder=5)
+    ax.annotate("", xy=(7.3, 4.2), xytext=(7.3, 5.2),
+                arrowprops=dict(arrowstyle="-|>", color="#3b82f6",
+                                lw=1.4, mutation_scale=13), zorder=5)
+
+    cloud_badge(4.6, 4.72, "Auto-deploy", "#3b82f6")
+    cloud_badge(7.85, 4.72, "Auto-deploy", "#3b82f6")
+
+    # ── CI/CD badge ───────────────────────────────────────────────────────
+    box(5.2, 0.4, 3.6, 1.0, "#F0FDF4", "GitHub Actions CI/CD",
+        "Tests → Build → Deploy", "✅")
+
+    ax.annotate("", xy=(7.0, 5.2), xytext=(7.0, 1.4),
+                arrowprops=dict(arrowstyle="-|>", color="#16a34a",
+                                lw=1.2, mutation_scale=12,
+                                linestyle="dotted"), zorder=2)
+
+    # ── URLs en bas ───────────────────────────────────────────────────────
+    ax.text(4.1, 0.15, "detection-dentaire-mlops.vercel.app",
+            ha="center", fontsize=7.5, color="#1d4ed8", style="italic")
+    ax.text(7.3, 0.15, "detectiondentairemlops-production.up.railway.app",
+            ha="center", fontsize=7.5, color="#d97706", style="italic")
+
+    # ── Titre ─────────────────────────────────────────────────────────────
+    ax.set_title("Architecture de déploiement — Système entièrement cloud",
+                 fontsize=13, fontweight="bold", pad=14)
+
+    fig.tight_layout()
+    out = OUT_DIR / "deployment_architecture.png"
+    fig.savefig(out, bbox_inches="tight", dpi=150)
+    plt.close(fig)
+    print(f"[OK] {out.name}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Lancement
 # ═══════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
@@ -406,4 +522,6 @@ if __name__ == "__main__":
     print("\nGénération des figures d'évaluation...\n")
     fig_model_comparison()
     fig_model_radar()
+    print("\nGénération des figures de déploiement...\n")
+    fig_deployment_architecture()
     print(f"\nToutes les figures sont dans : {OUT_DIR}")

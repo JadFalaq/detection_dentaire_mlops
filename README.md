@@ -1,6 +1,6 @@
 # Detection Dentaire MLOps
 
-Projet MLOps pour la detection d'anomalies et de maladies dentaires sur radiographies panoramiques.
+Projet MLOps pour la detection de pathologies et maladies dentaires sur radiographies panoramiques.
 
 ## Objectif
 

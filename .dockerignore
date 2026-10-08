@@ -20,3 +20,15 @@ reports/summaries/
 .dvcignore
 tmp/
 temp/
+frontend/
+deploy/
+docs/
+Documentation/
+cours/
+*.pdf
+mlflow.db
+yolov8s.pt
+models/exported/
+models/registry/
+models/checkpoints/*
+!models/checkpoints/champion/

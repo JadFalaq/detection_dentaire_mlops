@@ -3,11 +3,12 @@ name: CD — Build, Test & Deploy
 on:
   push:
     branches: ["main", "master"]
+  workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   IMAGE_NAME: dental-detection-api
-  RAILWAY_URL: https://detectiondentairemlops-production.up.railway.app
+  FRONTEND_URL: https://detection-dentaire-mlops.vercel.app
 
 jobs:
   # ── Job 1 : Tests unitaires (garde du CD) ─────────────────────────────────
@@ -96,7 +97,7 @@ jobs:
           path: /tmp/docker-image.tar.gz
           retention-days: 1
 
-  # ── Job 3 : Tests d'intégration (dépend de build) ────────────────────────
+  # ── Job 3 : Tests d'intégration (dépend de build) ─────────────────────────
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
@@ -171,31 +172,91 @@ jobs:
         if: always()
         run: docker rm -f dental-api || true
 
-  # ── Job 4 : Vérification production (dépend integration-tests) ────────────
-  verify-production:
-    name: Verify Production
+  # ── Job 4 : Publication de l'image testée sur GitHub Container Registry ────
+  publish:
+    name: Publish Image (ghcr.io)
+    runs-on: ubuntu-latest
+    needs: [build, integration-tests]
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.ref.outputs.image }}
+
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image-${{ needs.build.outputs.image_tag }}
+          path: /tmp
+
+      - name: Load Docker image
+        run: docker load < /tmp/docker-image.tar.gz
+
+      - name: Image reference
+        id: ref
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "repo=ghcr.io/${OWNER}/${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
+          echo "image=ghcr.io/${OWNER}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image_tag }}" >> $GITHUB_OUTPUT
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        run: |
+          docker tag ${{ env.IMAGE_NAME }}:latest ${{ steps.ref.outputs.image }}
+          docker tag ${{ env.IMAGE_NAME }}:latest ${{ steps.ref.outputs.repo }}:latest
+          docker push ${{ steps.ref.outputs.image }}
+          docker push ${{ steps.ref.outputs.repo }}:latest
+
+  # ── Job 5 : Déploiement sur Azure Container Apps (scale-to-zero) ───────────
+  # Actif dès que la variable AZURE_CONTAINERAPP et le secret AZURE_CREDENTIALS
+  # sont configurés dans le repo (voir docs/deployment.md).
+  deploy-azure:
+    name: Deploy to Azure Container Apps
+    runs-on: ubuntu-latest
+    needs: publish
+    if: ${{ vars.AZURE_CONTAINERAPP != '' }}
+
+    steps:
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Update container image
+        # min-replicas reste à 0 : la nouvelle révision retombe à zéro replica
+        # tant que personne n'appelle l'API.
+        run: |
+          az extension add --name containerapp --upgrade --only-show-errors
+          az containerapp update \
+            --name "${{ vars.AZURE_CONTAINERAPP }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --image "${{ needs.publish.outputs.image }}" \
+            --query "properties.latestRevisionName" -o tsv
+
+  # ── Job 6 : Vérification du frontend (ne réveille pas le backend) ──────────
+  verify-frontend:
+    name: Verify Frontend
     runs-on: ubuntu-latest
     needs: integration-tests
 
     steps:
-      - name: Check Railway backend
-        run: |
-          curl -sf ${{ env.RAILWAY_URL }}/health | python3 -c "
-          import sys, json; d=json.load(sys.stdin)
-          assert d['status']=='ok'
-          assert d['checkpoint_exists']==True
-          print(f'PASS: Railway — {d[\"model_name\"]} online')"
-
       - name: Check Vercel frontend
         run: |
-          S=$(curl -s -o /dev/null -w "%{http_code}" https://detection-dentaire-mlops.vercel.app)
+          S=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.FRONTEND_URL }})
           [ "$S" = "200" ] && echo "PASS: Vercel frontend online" || (echo "FAIL: $S" && exit 1)
 
-  # ── Job 5 : Résumé final ───────────────────────────────────────────────────
+  # ── Job 7 : Résumé final ──────────────────────────────────────────────────
   pipeline-summary:
     name: Pipeline Summary
     runs-on: ubuntu-latest
-    needs: [unit-tests, build, integration-tests, verify-production]
+    needs: [unit-tests, build, integration-tests, publish, deploy-azure, verify-frontend]
     if: always()
 
     steps:
@@ -207,16 +268,18 @@ jobs:
           echo "  Unit Tests         : ${{ needs.unit-tests.result }}"
           echo "  Build Image        : ${{ needs.build.result }}"
           echo "  Integration Tests  : ${{ needs.integration-tests.result }}"
-          echo "  Production Check   : ${{ needs.verify-production.result }}"
+          echo "  Publish (ghcr.io)  : ${{ needs.publish.result }}"
+          echo "  Deploy Azure       : ${{ needs.deploy-azure.result }}"
+          echo "  Frontend Check     : ${{ needs.verify-frontend.result }}"
           echo ""
           if [ "${{ needs.unit-tests.result }}" = "success" ] && \
              [ "${{ needs.build.result }}" = "success" ] && \
              [ "${{ needs.integration-tests.result }}" = "success" ] && \
-             [ "${{ needs.verify-production.result }}" = "success" ]; then
+             [ "${{ needs.publish.result }}" = "success" ] && \
+             [ "${{ needs.deploy-azure.result }}" != "failure" ] && \
+             [ "${{ needs.verify-frontend.result }}" = "success" ]; then
             echo "  STATUS : ALL GREEN ✓"
-            echo "  Frontend : https://detection-dentaire-mlops.vercel.app"
-            echo "  Backend  : ${{ env.RAILWAY_URL }}"
-            echo "  API Docs : ${{ env.RAILWAY_URL }}/docs"
+            echo "  Frontend : ${{ env.FRONTEND_URL }}"
             echo "=================================================="
             exit 0
           else

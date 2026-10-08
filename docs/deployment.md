@@ -4,7 +4,7 @@
 
 | Élément | Hébergement | Coût au repos |
 |---|---|---|
-| Frontend React (Snani) | Vercel — https://detection-dentaire-mlops.vercel.app | 0 |
+| Frontend React (Snani) | Vercel — https://snani.vercel.app (l'ancienne adresse detection-dentaire-mlops.vercel.app y redirige) | 0 |
 | Image Docker de l'API | GitHub Container Registry — `ghcr.io/jadfalaq/dental-detection-api` | 0 (package public) |
 | API d'inférence | Azure Container Apps, plan Consumption, **0 à 1 replica** | 0 |
 
@@ -28,7 +28,7 @@ frontend affiche « Réveil de l'IA… » pendant ce temps.
 
 API (`src/detection_dentaire/serving/api.py`) :
 
-- CORS limité au site Vercel et à `localhost:5173` (variable `ALLOWED_ORIGINS` pour en changer) ;
+- CORS limité au site Vercel (`snani.vercel.app` et l'ancienne adresse) et à `localhost:5173` (variable `ALLOWED_ORIGINS` pour en changer) ;
 - limite de requêtes sur `POST /predict` : 10 par minute et 100 par heure et par adresse IP (réponse 429) ;
 - fichiers limités à 15 Mo et images à 40 mégapixels (réponse 413), fichiers non-image refusés (400) ;
 - paramètres bornés : `image_size` 320–1280, `conf_threshold` 0,05–0,95, `iou_threshold` 0,1–0,9, `max_det` 1–300 (422) ;

@@ -26,6 +26,7 @@ MAX_REQUEST_BYTES = MAX_UPLOAD_BYTES + 64 * 1024
 MAX_IMAGE_PIXELS = 40_000_000
 
 DEFAULT_ALLOWED_ORIGINS = (
+    "https://snani.vercel.app",
     "https://detection-dentaire-mlops.vercel.app",
     "http://localhost:5173",
     "http://127.0.0.1:5173",

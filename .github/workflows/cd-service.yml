@@ -8,7 +8,7 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   IMAGE_NAME: dental-detection-api
-  FRONTEND_URL: https://detection-dentaire-mlops.vercel.app
+  FRONTEND_URL: https://snani.vercel.app
 
 jobs:
   # ── Job 1 : Tests unitaires (garde du CD) ─────────────────────────────────

@@ -27,11 +27,11 @@ const fr = {
     ctaPrimary: 'Analyser ma radio',
     ctaSecondary: 'Essayer avec un exemple',
     trust: ['100 % gratuit', 'Sans inscription', 'Radio non conservée'],
-    artLabel: "Illustration : l'IA parcourt une radio panoramique et entoure les zones repérées",
-    artChips: [
-      { label: 'Carie', detail: 'à faire vérifier' },
-      { label: 'Dent incluse', detail: 'à surveiller' },
-    ],
+    videoLabel: 'Vidéo de présentation : comment utiliser Snani',
+    videoCaption: 'Snani en 10 secondes',
+    videoPlay: 'Lire la vidéo',
+    videoSoundOn: 'Activer le son',
+    videoSoundOff: 'Couper le son',
   },
   how: {
     eyebrow: 'Simple comme bonjour',

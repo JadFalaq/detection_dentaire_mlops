@@ -414,75 +414,82 @@
   position: relative;
 }
 
-.xray-frame {
-  padding: 12px;
+.hero-video {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.video-frame {
+  position: relative;
+  padding: 10px;
   border-radius: var(--radius-lg);
   background: linear-gradient(145deg, #ffffff, #efe9ff);
   box-shadow: var(--shadow-lg);
-  transform: rotate(-1.5deg);
 }
 
-:root[dir='rtl'] .xray-frame {
-  transform: rotate(1.5deg);
-}
-
-.xray-art {
+.video-el {
   display: block;
   width: 100%;
-  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
   border-radius: 20px;
+  background: #0d1020;
+  cursor: pointer;
 }
 
-.xr-scan {
-  animation: scan 4.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
-
-.xr-box {
-  opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: box-in 4.2s ease-out infinite;
-}
-
-.float-chip {
+.video-play {
   position: absolute;
+  inset: 50% auto auto 50%;
   display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: 8px;
-  align-items: center;
-  padding: 10px 14px;
-  border-radius: 14px;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border: 0;
+  border-radius: 50%;
   background: rgb(255 255 255 / 0.94);
-  box-shadow: var(--shadow);
-  animation: float 6s ease-in-out infinite;
+  color: var(--majorelle);
+  box-shadow: 0 16px 36px -12px rgb(20 26 61 / 0.55);
+  transform: translate(-50%, -50%);
+  transition: transform 0.2s ease;
 }
 
-.float-chip strong {
-  font-size: 0.92rem;
+.video-play svg {
+  margin-inline-start: 4px;
 }
 
-.float-chip small {
-  grid-column: 2;
+.video-play:hover {
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.video-sound {
+  position: absolute;
+  inset-block-end: 22px;
+  inset-inline-end: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(13 16 32 / 0.72);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.86rem;
+  backdrop-filter: blur(8px);
+}
+
+.video-sound:hover,
+.video-sound.is-on {
+  background: var(--majorelle);
+}
+
+.video-caption {
+  text-align: center;
   color: var(--muted);
-  font-size: 0.78rem;
-}
-
-.chip-dot {
-  grid-row: span 2;
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-}
-
-.chip-a {
-  inset-block-start: -18px;
-  inset-inline-start: -12px;
-}
-
-.chip-b {
-  inset-block-end: -20px;
-  inset-inline-end: 8px;
-  animation-delay: -3s;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 /* ── How it works ───────────────────────────────────────────────────────── */
@@ -1557,38 +1564,12 @@ details[open] > summary .chevron,
 }
 
 /* ── Animations ─────────────────────────────────────────────────────────── */
-@keyframes scan {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(600px);
-  }
-}
-
 @keyframes stage-scan {
   0% {
     transform: translateX(-100%);
   }
   100% {
     transform: translateX(460%);
-  }
-}
-
-@keyframes box-in {
-  0%,
-  8% {
-    opacity: 0;
-    transform: scale(1.4);
-  }
-  18%,
-  86% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1);
   }
 }
 
@@ -1692,6 +1673,27 @@ details[open] > summary .chevron,
 }
 
 @media (max-width: 640px) {
+  .video-frame {
+    padding: 6px;
+  }
+
+  .video-el {
+    border-radius: 16px;
+  }
+
+  .video-sound {
+    inset-block-end: 14px;
+    inset-inline-end: 14px;
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+  }
+
+  .video-play {
+    width: 60px;
+    height: 60px;
+  }
+
   .header-cta {
     display: none;
   }
@@ -1709,13 +1711,6 @@ details[open] > summary .chevron,
     flex: 1 1 100%;
   }
 
-  .float-chip {
-    padding: 7px 10px;
-  }
-
-  .chip-a {
-    inset-inline-start: 0;
-  }
 
   .dropzone {
     min-height: 0;

@@ -1,7 +1,7 @@
 import { EXAMPLE_EVENT } from '../events'
 import { useI18n } from '../i18n/context'
+import HeroVideo from './HeroVideo'
 import { CheckIcon } from './Icons'
-import XRayArt from './XRayArt'
 
 export default function Hero() {
   const { t } = useI18n()
@@ -40,19 +40,7 @@ export default function Hero() {
         </div>
 
         <div className="hero-visual">
-          <div className="xray-frame">
-            <XRayArt label={t.hero.artLabel} />
-          </div>
-          <div className="float-chip chip-a">
-            <span className="chip-dot" style={{ background: '#ff7a45' }} />
-            <strong>{t.hero.artChips[0].label}</strong>
-            <small>{t.hero.artChips[0].detail}</small>
-          </div>
-          <div className="float-chip chip-b">
-            <span className="chip-dot" style={{ background: '#a78bfa' }} />
-            <strong>{t.hero.artChips[1].label}</strong>
-            <small>{t.hero.artChips[1].detail}</small>
-          </div>
+          <HeroVideo />
         </div>
       </div>
     </section>

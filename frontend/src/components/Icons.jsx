@@ -150,6 +150,32 @@ export function GlobeIcon(props) {
   )
 }
 
+export function SoundOnIcon(props) {
+  return (
+    <Svg {...props}>
+      <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5Z" />
+      <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
+    </Svg>
+  )
+}
+
+export function SoundOffIcon(props) {
+  return (
+    <Svg {...props}>
+      <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5Z" />
+      <path d="m16 9.5 5 5M21 9.5l-5 5" />
+    </Svg>
+  )
+}
+
+export function PlayIcon(props) {
+  return (
+    <Svg {...props}>
+      <path d="M8 5.5v13l10.5-6.5Z" fill="currentColor" />
+    </Svg>
+  )
+}
+
 export function WhatsappIcon({ size = 20, ...props }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>

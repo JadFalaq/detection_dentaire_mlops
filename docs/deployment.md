@@ -24,6 +24,25 @@ Ordre de grandeur (France Central, 0,5 vCPU / 1 Gio) : 0,054 $ par heure active,
 Le premier appel après une période d'inactivité prend 30 à 60 s (démarrage à froid) ; le
 frontend affiche « Réveil de l'IA… » pendant ce temps.
 
+## Sécurité
+
+API (`src/detection_dentaire/serving/api.py`) :
+
+- CORS limité au site Vercel et à `localhost:5173` (variable `ALLOWED_ORIGINS` pour en changer) ;
+- limite de requêtes sur `POST /predict` : 10 par minute et 100 par heure et par adresse IP (réponse 429) ;
+- fichiers limités à 15 Mo et images à 40 mégapixels (réponse 413), fichiers non-image refusés (400) ;
+- paramètres bornés : `image_size` 320–1280, `conf_threshold` 0,05–0,95, `iou_threshold` 0,1–0,9, `max_det` 1–300 (422) ;
+- `/docs` et `/openapi.json` désactivés dans l'image Docker (`API_DOCS_ENABLED=false`), actifs en local ;
+- conteneur exécuté avec un utilisateur non-root (uid 10001) ;
+- les radios ne sont jamais conservées (fichier temporaire supprimé après l'analyse).
+
+Frontend (`frontend/vercel.json`) : Content-Security-Policy stricte (scripts du site uniquement,
+connexions vers l'API Azure uniquement), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`,
+`Permissions-Policy`. Si l'URL de l'API change, il faut aussi la changer dans `connect-src`.
+
+Risque résiduel : un robot réparti sur beaucoup d'adresses IP pourrait garder le conteneur éveillé.
+Le coût reste plafonné par `max-replicas = 1` (~34 $/mois au pire) ; garder une alerte de budget.
+
 ## Déployer l'API sur Azure (première fois)
 
 1. Installer Azure CLI et se connecter :
@@ -46,8 +65,9 @@ frontend affiche « Réveil de l'IA… » pendant ce temps.
    .\deploy\azure\deploy.ps1
    ```
 
-   Le script est idempotent : le relancer met à jour l'application existante. Il affiche
-   l'URL de l'API à la fin.
+   Le script est idempotent : le relancer met à jour l'application existante. Il déploie
+   l'image du commit courant (étiquette = SHA court) après avoir vérifié qu'elle est publiée,
+   et affiche l'URL de l'API à la fin. Pour une autre version : `-ImageTag <sha>`.
 
 5. Brancher le frontend sur cette URL :
    - `frontend/.env.production` → `VITE_API_BASE_URL=https://<url-affichée>` ;

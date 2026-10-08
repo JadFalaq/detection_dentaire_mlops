@@ -148,21 +148,30 @@ jobs:
           assert d['checkpoint_exists']==True
           print(f'PASS: /model-info — {d[\"model_name\"]}')"
 
-      - name: Test GET /docs
+      - name: Test security hardening
         run: |
           S=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/docs)
-          [ "$S" = "200" ] && echo "PASS: /docs" || (echo "FAIL: $S" && exit 1)
+          [ "$S" = "404" ] && echo "PASS: /docs disabled in production image" || (echo "FAIL: /docs $S" && exit 1)
 
-      - name: Test POST /predict
+          U=$(docker exec dental-api id -u)
+          [ "$U" != "0" ] && echo "PASS: container runs as uid $U" || (echo "FAIL: container runs as root" && exit 1)
+
+          S=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/predict \
+            -F "file=@frontend/public/exemple-radio.jpg" -F "image_size=10000")
+          [ "$S" = "422" ] && echo "PASS: out-of-range image_size rejected" || (echo "FAIL: image_size $S" && exit 1)
+
+          H=$(curl -s -o /dev/null -D - -X OPTIONS http://localhost:8000/predict \
+            -H "Origin: https://evil.example" -H "Access-Control-Request-Method: POST" | grep -ci "access-control-allow-origin" || true)
+          [ "$H" = "0" ] && echo "PASS: unknown origin refused by CORS" || (echo "FAIL: CORS open" && exit 1)
+
+      - name: Test POST /predict (vraie radio)
         run: |
+          S=$(curl -s -o /tmp/pr.json -w "%{http_code}" -X POST http://localhost:8000/predict             -F "file=@frontend/public/exemple-radio.jpg" -F "image_size=832" -F "conf_threshold=0.15")
+          [ "$S" = "200" ] || (echo "FAIL: POST /predict $S" && cat /tmp/pr.json && exit 1)
           python3 -c "
-          import base64,os; os.makedirs('tests/fixtures',exist_ok=True)
-          open('tests/fixtures/test.jpg','wb').write(base64.b64decode('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAARCAABAAEDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAABgUEB//EAB4QAAIBBAMAAAAAAAAAAAAAAAABAgMREiExQf/EABUBAQEAAAAAAAAAAAAAAAAAAAAB/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8Ao9tRlZBYY6sAZ5qgB//Z'))
-          "
-          S=$(curl -s -o /tmp/pr.json -w "%{http_code}" -X POST \
-            http://localhost:8000/predict -F "file=@tests/fixtures/test.jpg")
-          cat /tmp/pr.json
-          ([ "$S" = "200" ] || [ "$S" = "500" ]) && echo "PASS: POST /predict ($S)" || (echo "FAIL: $S" && exit 1)
+          import json; d=json.load(open('/tmp/pr.json'))
+          assert isinstance(d['detections'], list)
+          print(f'PASS: POST /predict — {d[\"num_detections\"]} detections')"
 
       - name: Container logs
         if: always()

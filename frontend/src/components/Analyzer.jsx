@@ -164,7 +164,7 @@ export default function Analyzer({ status, onWake, onServerActive }) {
         signal: AbortSignal.timeout(150000),
       })
       if (!response.ok) {
-        setErrorKey('server')
+        setErrorKey(response.status === 429 ? 'rateLimited' : response.status === 413 ? 'tooLarge' : 'server')
         setPhase('error')
         return
       }

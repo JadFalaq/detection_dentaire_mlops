@@ -105,6 +105,9 @@ const fr = {
     retryConnection: 'Réessayer la connexion',
     errors: {
       network: 'Impossible de joindre le serveur. Vérifiez votre connexion internet, puis réessayez.',
+      rateLimited:
+        'Vous avez lancé beaucoup d’analyses en peu de temps. Patientez une minute, puis réessayez.',
+      tooLarge: 'Cette image est trop lourde. Choisissez une image de moins de 15 Mo.',
       server:
         "L'analyse n'a pas pu aboutir. Essayez avec une image plus nette, ou réessayez dans un instant.",
     },

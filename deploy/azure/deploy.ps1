@@ -10,21 +10,51 @@
 
   Prérequis : Azure CLI installé et `az login` effectué.
 
+  Par défaut, déploie l'image du commit courant (étiquette = SHA court), publiée par le CD.
+  Une étiquette immuable garantit qu'Azure crée une nouvelle révision avec la bonne image.
+
 .EXAMPLE
   .\deploy\azure\deploy.ps1
-  .\deploy\azure\deploy.ps1 -Location westeurope
+  .\deploy\azure\deploy.ps1 -ImageTag 9f51d23
 #>
 param(
     [string]$ResourceGroup = 'rg-snani',
     [string]$Location = 'francecentral',
     [string]$EnvironmentName = 'snani-env',
     [string]$AppName = 'snani-api',
-    [string]$Image = 'ghcr.io/jadfalaq/dental-detection-api:latest',
+    [string]$ImageRepository = 'ghcr.io/jadfalaq/dental-detection-api',
+    [string]$ImageTag = '',
     [string]$Cpu = '0.5',
     [string]$Memory = '1.0Gi'
 )
 
 $ErrorActionPreference = 'Stop'
+
+if (-not $ImageTag) {
+    $ImageTag = (& git -C $PSScriptRoot rev-parse --short=7 HEAD).Trim()
+}
+$Image = "${ImageRepository}:$ImageTag"
+
+function Test-ImagePublished([string]$Repository, [string]$Tag) {
+    $name = $Repository -replace '^ghcr\.io/', ''
+    try {
+        $token = (Invoke-RestMethod "https://ghcr.io/token?scope=repository:${name}:pull").token
+        $headers = @{
+            Authorization = "Bearer $token"
+            Accept        = 'application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json'
+        }
+        Invoke-WebRequest "https://ghcr.io/v2/$name/manifests/$Tag" -Headers $headers -Method Head -UseBasicParsing | Out-Null
+        return $true
+    }
+    catch {
+        return $false
+    }
+}
+
+Write-Host "==> Image $Image" -ForegroundColor Cyan
+if (-not (Test-ImagePublished $ImageRepository $ImageTag)) {
+    throw "L'image $Image n'existe pas (encore) sur ghcr.io. Attendez la fin du job 'Publish Image' du CD, ou passez -ImageTag."
+}
 
 function Invoke-Az {
     & az @args

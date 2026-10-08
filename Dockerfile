@@ -3,6 +3,7 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
+ENV API_DOCS_ENABLED=false
 
 WORKDIR /app
 
@@ -31,7 +32,13 @@ RUN pip install -e .
 COPY models/checkpoints/champion/weights/best.pt \
      ./models/checkpoints/champion/weights/best.pt
 
+# ── Utilisateur non-root ─────────────────────────────────────────────────────
+RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
 # ── Port et commande de démarrage ────────────────────────────────────────────
+
 EXPOSE 8000
 
 CMD ["python", "scripts/serve_api.py", "--host", "0.0.0.0", "--port", "8000"]

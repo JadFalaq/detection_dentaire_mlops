@@ -81,4 +81,4 @@ jobs:
         working-directory: frontend
         run: npm run build
         env:
-          VITE_API_BASE_URL: https://detectiondentairemlops-production.up.railway.app
+          VITE_API_BASE_URL: https://snani-api.ashypebble-36394df2.francecentral.azurecontainerapps.io
